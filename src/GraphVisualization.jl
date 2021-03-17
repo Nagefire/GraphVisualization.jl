@@ -17,6 +17,8 @@ export gplot, gplot!, gplot3d, gplot3d!, spectral_layout, tree_layout,
 include("layout.jl")
 
 """
+	gplot(G) → scene
+
 Returns a Makie Scene containing a plot of the graph.
 
 # Optional Keyword Arguments
@@ -33,18 +35,19 @@ function gplot(G::AbstractGraph, points::Vector{Point{2, R}};
                resolution::Tuple{Int, Int}=(1200, 900),
                backgroundc=colorant"#202020",
                keyargs...) where R <: Real
-    res = Scene(resolution=resolution, show_axis=false, backgroundcolor=backgroundc)
+	res = Scene(resolution=resolution, show_axis=false,
+	            backgroundcolor=backgroundc)
 
-    gplot!(res, G, points; keyargs...)
+	gplot!(res, G, points; keyargs...)
 
-    res
+	res
 end
 
 gplot(G::AbstractGraph; layout::Function=sfdp_layout, keyargs...)=
     gplot(G, layout(G); keyargs...)
 
 """
-    gplot!(scene, G, points; ...)
+	gplot!(scene, G, points[, keyargs])
 
 Plots `G` onto a new axis in `scene` using `x` and `y` as coordinates for
 each vertex.
@@ -55,71 +58,74 @@ function gplot!(scene::Scene, G::AbstractGraph, points::Vector{Point{2, R}};
                 nodesize=0.5,
                 edgelinewidth=3,
                 edgelinec=colorant"lightgrey") where R <: Real
-    n = nv(G)
-    size(points, 1) != n &&
-        throw(ArgumentError("Each vertex must have an (x, y) coordinate"))
+	n = nv(G)
+	size(points, 1) != n &&
+	throw(ArgumentError("Each vertex must have an (x, y) coordinate"))
 
-    # Scale positions based on number of vertices
-    points *= n
+	# Scale positions based on number of vertices
+	points *= n
 
-    # Plot the edges
-    if is_directed(G)
-        vecs = _vecs2d(G, points, nodesize)
-        arrows!(scene, vecs..., linewidth=edgelinewidth, color=edgelinec)
-    else
-        lines = _lines2d(G, points)
-        linesegments!(scene, lines, linewidth=edgelinewidth, color=edgelinec)
-    end
+	# Plot the edges
+	if is_directed(G)
+		vecs = _vecs2d(G, points, nodesize)
+		arrows!(scene, vecs..., linewidth=edgelinewidth,
+		        color=edgelinec)
+	else
+		lines = _lines2d(G, points)
+		linesegments!(scene, lines, linewidth=edgelinewidth,
+		              color=edgelinec)
+	end
 
-    # Plot the vertices as points
-    scatter!(scene, points, color=nodefillc, markersize=nodesize*100)
+	# Plot the vertices as points
+	scatter!(scene, points, color=nodefillc,
+	         markersize=nodesize*100)
 
-    if nodelabel !== nothing && length(nodelabel) == n
-        textsize = nodesize
+	if nodelabel !== nothing && length(nodelabel) == n
+		textsize = nodesize
 
-        for i=1:n
-            text!(scene, "$(nodelabel[i])", textsize=textsize,
-                  position=points[i])
-        end
-    end
+		for i=1:n
+			text!(scene, "$(nodelabel[i])",
+			      textsize=textsize, position=points[i])
+		end
+	end
 end
 
-gplot!(scene::Scene, G::AbstractGraph, layout::Function=sfdp_layout; keyargs...)=
-    gplot!(scene, G, layout(G); keyargs...)
+gplot!(scene::Scene, G::AbstractGraph; layout::Function=sfdp_layout,
+       keyargs...)=gplot!(scene, G, layout(G); keyargs...)
 
 # Returns the a set of lines representing undirected edges
 function _lines2d(G::AbstractGraph, points::Vector{Point{2, R}}) where R <: Real
-    res = fill(Point(0., 0.) => Point(0., 0.), ne(G))
-    i = 1
+	res = fill(Point(0., 0.) => Point(0., 0.), ne(G))
+	i = 1
 
-    @inbounds @simd for e in collect(edges(G))
-        res[i] = points[e.src] => points[e.dst]
-        i += 1
-    end
+	@inbounds @simd for e in collect(edges(G))
+		res[i] = points[e.src] => points[e.dst]
+		i += 1
+	end
 
-    res
+	res
 end
 
 # Create a set of arrows representing directed edges
 # TODO: Compute the center-edge offset so that the arrows begin and meet
 # at the boundary of each vertex
 function _vecs2d(G::AbstractGraph, points::Vector{Point{2, R}}, r::R) where R <: Real
-    m = ne(G)
-    pos = fill(Point(0., 0.), m)
-    cmp = fill(Point(0., 0.), m)
-    i = 1
+	m = ne(G)
+	pos = fill(Point(0., 0.), m)
+	cmp = fill(Point(0., 0.), m)
+	i = 1
 
-    @inbounds @simd for e in collect(edges(G))
-        pos[i] = points[e.src]
-        cmp[i] = points[e.dst] - points[e.src]
-        i += 1
-    end
+	@inbounds @simd for e in collect(edges(G))
+		pos[i] = points[e.src]
+		cmp[i] = points[e.dst] - points[e.src]
+		i += 1
+	end
 
-    pos, cmp
+	pos, cmp
 end
 
 """
-    gplot3d(G; ...)
+	gplot3d(G; ...)
 
 Returns a scene containing a 3d plot of `G`.
 
@@ -134,18 +140,18 @@ function gplot3d(G::AbstractGraph, points::Vector{Point{3, R}};
                  resolution::Tuple{Int, Int}=(1200, 900),
                  backgroundc=colorant"#202020",
                  keyargs...) where R <: Real
-    res = Scene(resolution=resolution, backgroundcolor=backgroundc)
+	res = Scene(resolution=resolution, backgroundcolor=backgroundc)
 
-    gplot3d!(res, G, points; keyargs...)
+	gplot3d!(res, G, points; keyargs...)
 
-    res
+	res
 end
 
 gplot3d(G::AbstractGraph; layout::Function=_spectral3d, keyargs...)=
-    gplot3d(G, layout(Matrix(laplacian_matrix(G))); keyargs...)
+	gplot3d(G, layout(Matrix(laplacian_matrix(G))); keyargs...)
 
 """
-    gplot3d!(scene, G; ...)
+	gplot3d!(scene, G; ...)
 
 Plots `G` onto the scene as a 3-dimensional figure.
 
@@ -157,22 +163,23 @@ Plots `G` onto the scene as a 3-dimensional figure.
 - `edgelinec` - the color of the edges.
 """
 function gplot3d!(scene::Scene, G::AbstractGraph, points::Vector{Point{3, R}};
-                 nodefillc=colorant"green",
-                 nodesize=0.3,
-                 edgelinewidth=2.5,
-                 edgelinec=colorant"lightgrey") where R <: Real
-    n = nv(G)
-    size(points, 1) != n && throw(ArgumentError("Each vertex must have an (x,y,z) coordinate"))
+                  nodefillc=colorant"green",
+                  nodesize=0.3,
+                  edgelinewidth=2.5,
+                  edgelinec=colorant"lightgrey") where R <: Real
+	n = nv(G)
+	size(points, 1) != n && throw(ArgumentError("Each vertex must have an (x,y,z) coordinate"))
 
-    # Scale up based on the number of vertices
-    points *= n
+	# Scale up based on the number of vertices
+	points *= n
 
-    linesegments!(scene, [points[e.src] => points[e.dst] for e in edges(G)],
-                  linewidth=edgelinewidth, color=edgelinec)
-    meshscatter!(scene, points, color=nodefillc, markersize=nodesize)
+	linesegments!(scene, [points[e.src] => points[e.dst] for e in edges(G)],
+	              linewidth=edgelinewidth, color=edgelinec)
+	meshscatter!(scene, points, color=nodefillc, markersize=nodesize)
 end
 
-gplot3d!(scene::Scene, G::AbstractGraph; layout::Function=_spectral3d, keyargs...)=
-    gplot3d!(scene, G, layout(Matrix(laplacian_matrix(G))); keyargs...)
+gplot3d!(scene::Scene, G::AbstractGraph; layout::Function=_spectral3d,
+         keyargs...)=
+	gplot3d!(scene, G, layout(Matrix(laplacian_matrix(G))); keyargs...)
 
 end
